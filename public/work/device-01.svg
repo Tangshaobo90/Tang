@@ -1,0 +1,8 @@
+<svg width="1600" height="1000" viewBox="0 0 1600 1000" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1600" height="1000" fill="#060606"/>
+  <rect x="390" y="190" width="820" height="620" rx="44" fill="#121212" stroke="white" stroke-opacity=".14"/>
+  <rect x="440" y="250" width="720" height="430" rx="22" fill="#EFEDE7"/>
+  <path d="M500 610H1100" stroke="#090909" stroke-opacity=".65" stroke-width="32"/>
+  <circle cx="800" cy="744" r="24" fill="white" fill-opacity=".22"/>
+  <text x="480" y="150" fill="white" fill-opacity=".42" font-family="Arial, Helvetica, sans-serif" font-size="26">Industrial product display placeholder</text>
+</svg>

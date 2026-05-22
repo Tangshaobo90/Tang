@@ -1,0 +1,10 @@
+<svg width="1600" height="1000" viewBox="0 0 1600 1000" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1600" height="1000" fill="#060606"/>
+  <rect x="220" y="150" width="1160" height="700" rx="28" fill="#111111" stroke="white" stroke-opacity=".1"/>
+  <rect x="315" y="260" width="210" height="210" rx="18" fill="#E6E0D4"/>
+  <rect x="555" y="260" width="210" height="210" rx="18" fill="#2A2927" stroke="white" stroke-opacity=".12"/>
+  <rect x="795" y="260" width="210" height="210" rx="18" fill="#101010" stroke="white" stroke-opacity=".18"/>
+  <rect x="1035" y="260" width="210" height="210" rx="18" fill="#DAD4C8"/>
+  <path d="M315 600H1245M315 670H1040M315 740H820" stroke="white" stroke-opacity=".16" stroke-width="20"/>
+  <text x="315" y="210" fill="white" fill-opacity=".82" font-family="Arial, Helvetica, sans-serif" font-size="52" font-weight="700">Visual Language</text>
+</svg>
