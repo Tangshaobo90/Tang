@@ -99,10 +99,35 @@
       nav a:hover { color: white; }
       nav .links { display: flex; gap: 24px; }
 
+      .protected-trigger {
+        display: inline-flex;
+        align-items: center;
+        border: 0;
+        background: transparent;
+        padding: 0;
+        color: inherit;
+        font: inherit;
+        letter-spacing: 0;
+      }
+
+      .protected-trigger:hover,
+      .protected-trigger:focus-visible,
+      .protected-trigger[data-revealed="true"] {
+        color: white;
+      }
+
+      .protected-value {
+        font-variant-numeric: tabular-nums;
+      }
+
       .nav-actions {
         display: flex;
         align-items: center;
         gap: 14px;
+      }
+
+      .nav-protected {
+        color: rgba(240, 244, 255, .64);
       }
 
       .language-switch {
@@ -347,6 +372,9 @@
       }
 
       .hero-contact span { color: rgba(236, 241, 255, .46); margin-right: 24px; }
+      .hero-contact .protected-trigger {
+        color: rgba(236, 241, 255, .76);
+      }
       .headline {
         margin: 0;
         color: white;
@@ -767,9 +795,18 @@
         text-decoration: none;
       }
 
+      button.contact-item {
+        width: 100%;
+        text-align: left;
+      }
+
       .contact-item span {
         color: rgba(255,255,255,.42);
         margin-right: 18px;
+      }
+
+      .contact-item b {
+        font-weight: inherit;
       }
 
       .contact-note {
@@ -1004,7 +1041,9 @@
         <a href="#contact">联系</a>
       </div>
       <div class="nav-actions">
-        <a href="mailto:187279980@qq.com">187279980@qq.com</a>
+        <button class="nav-protected protected-trigger" type="button" data-protect="email" aria-label="显示邮箱">
+          <span class="protected-value">1872****@qq.com</span>
+        </button>
         <div class="language-switch" aria-label="Language switch">
           <button class="active" type="button" data-lang-switch="cn">CN</button>
           <span>/</span>
@@ -1029,11 +1068,11 @@
               <div class="hero-stat"><strong>300人+</strong><span>候选面试经验</span></div>
             </div>
             <div class="hero-contact">
-              <div><span>电话</span>172-7973-0001</div>
+              <div><span>电话</span><button class="protected-trigger" type="button" data-protect="phone" aria-label="显示电话"><span class="protected-value">172-****-0001</span></button></div>
               <div><span>专业</span>艺术设计-包装设计</div>
-              <div><span>邮箱</span>187279980@qq.com</div>
+              <div><span>邮箱</span><button class="protected-trigger" type="button" data-protect="email" aria-label="显示邮箱"><span class="protected-value">1872****@qq.com</span></button></div>
               <div><span>籍贯</span>湖南</div>
-              <div><span>教育</span>湖南工业大学科技学院 / 本科 / 包装设计 / 2008年 - 2012年</div>
+              <div><span>教育</span>湖南工业大学科技学院 本科</div>
               <div><span>现籍</span>深圳</div>
             </div>
           </div>
@@ -1259,8 +1298,8 @@
           <h2 class="headline">联系方式</h2>
         </div>
           <div class="contact-list">
-            <a class="contact-item" href="tel:17279730001"><span>电话</span>172-7973-0001</a>
-            <a class="contact-item" href="mailto:187279980@qq.com"><span>邮箱</span>187279980@qq.com</a>
+            <button class="contact-item protected-trigger" type="button" data-protect="phone" aria-label="显示电话"><span>电话</span><b class="protected-value">172-****-0001</b></button>
+            <button class="contact-item protected-trigger" type="button" data-protect="email" aria-label="显示邮箱"><span>邮箱</span><b class="protected-value">1872****@qq.com</b></button>
             <div class="contact-item"><span>微信</span>_Tang0001_</div>
             <div class="contact-item"><span>城市</span>深圳</div>
           </div>
@@ -1297,7 +1336,7 @@
         "教育": "Education",
         "现籍": "City",
         "艺术设计-包装设计": "Art Design - Packaging Design",
-        "湖南工业大学科技学院 / 本科 / 包装设计 / 2008年 - 2012年": "Hunan University of Technology College / Bachelor / Packaging Design / 2008 - 2012",
+        "湖南工业大学科技学院 本科": "Hunan University of Technology College / Bachelor",
         "湖南": "Hunan",
         "湖南工业大学科技学院": "Hunan University of Technology College",
         "深圳": "Shenzhen",
@@ -1460,6 +1499,37 @@
         textNodes.push({ node: walker.currentNode, original: walker.currentNode.nodeValue });
       }
 
+      const protectedValues = {
+        phone: ["172", "-", "79", "73", "-", "0001"].join(""),
+        email: ["187", "279", "980", "@", "qq", ".", "com"].join("")
+      };
+
+      const protectedMasks = {
+        phone: "172-****-0001",
+        email: "1872****@qq.com"
+      };
+
+      const protectedLabels = {
+        phone: { show: "显示电话", hide: "隐藏电话" },
+        email: { show: "显示邮箱", hide: "隐藏邮箱" }
+      };
+
+      const syncProtectedValue = (trigger, reveal = false) => {
+        const type = trigger.dataset.protect;
+        const value = reveal ? protectedValues[type] : protectedMasks[type];
+        const target = trigger.querySelector(".protected-value");
+        if (!type || !target || !value) return;
+        target.textContent = value;
+        trigger.dataset.revealed = reveal ? "true" : "false";
+        trigger.setAttribute("aria-label", reveal ? protectedLabels[type].hide : protectedLabels[type].show);
+      };
+
+      const concealProtectedValues = () => {
+        document.querySelectorAll(".protected-trigger[data-protect]").forEach((trigger) => {
+          syncProtectedValue(trigger, false);
+        });
+      };
+
       const hintText = (isOpen, lang) => {
         if (lang === "en") return isOpen ? "Collapse" : "Expand";
         return isOpen ? "点击收起" : "点击展开";
@@ -1502,10 +1572,32 @@
         });
 
         syncJobHints();
+        concealProtectedValues();
       };
 
       document.querySelectorAll("[data-lang-switch]").forEach((button) => {
         button.addEventListener("click", () => setLanguage(button.dataset.langSwitch));
+      });
+
+      document.querySelectorAll(".protected-trigger[data-protect]").forEach((trigger) => {
+        let timer = null;
+        const reveal = () => {
+          window.clearTimeout(timer);
+          syncProtectedValue(trigger, true);
+        };
+        const conceal = () => {
+          window.clearTimeout(timer);
+          syncProtectedValue(trigger, false);
+        };
+
+        trigger.addEventListener("pointerenter", reveal);
+        trigger.addEventListener("pointerleave", conceal);
+        trigger.addEventListener("focus", reveal);
+        trigger.addEventListener("blur", conceal);
+        trigger.addEventListener("click", () => {
+          reveal();
+          timer = window.setTimeout(conceal, 4200);
+        });
       });
 
       setLanguage("cn");
