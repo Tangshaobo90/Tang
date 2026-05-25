@@ -1,0 +1,903 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#003238" />
+    <title>唐少博的数字战争</title>
+    <style>
+      :root {
+        color: #bfd3d7;
+        background: #003238;
+        font-family: "Arial Rounded MT Bold", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+        font-synthesis: none;
+        text-rendering: geometricPrecision;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        min-width: 320px;
+        min-height: 100svh;
+        background:
+          radial-gradient(circle at 18% 84%, rgba(79, 53, 255, .26), transparent 34%),
+          radial-gradient(circle at 82% 72%, rgba(30, 164, 255, .24), transparent 36%),
+          #003238;
+      }
+
+      button {
+        border: 0;
+        font: inherit;
+        color: inherit;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      .back-link {
+        position: fixed;
+        z-index: 8;
+        left: max(16px, calc((100vw - 880px) / 2));
+        top: 16px;
+        display: inline-flex;
+        align-items: center;
+        min-height: 38px;
+        border: 1px solid rgba(191, 211, 215, .24);
+        border-radius: 999px;
+        padding: 0 14px;
+        color: rgba(235, 250, 255, .86);
+        background: rgba(0, 26, 29, .52);
+        backdrop-filter: blur(14px);
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      .game-shell {
+        position: relative;
+        --shell-width: min(100vw, 880px, max(320px, calc(100svh * 0.64)));
+        --shell-pad-x: clamp(12px, 2vw, 22px);
+        --board-gap: clamp(8px, 1.3vw, 14px);
+        --board-pad: clamp(12px, 1.7vw, 18px);
+        --random-tile-size: clamp(
+          48px,
+          calc(
+            (
+                var(--shell-width) - var(--shell-pad-x) - var(--shell-pad-x) - var(--board-pad) -
+                  var(--board-pad) - var(--board-gap) - var(--board-gap) - var(--board-gap) -
+                  var(--board-gap) - var(--board-gap)
+              ) / 6
+          ),
+          112px
+        );
+        --reserve-tile-size: calc(var(--random-tile-size) / 2);
+        --panel-radius: 18px;
+        --tile-radius: 14px;
+        --small-tile-radius: 7px;
+        --current-radius: 14px;
+        --top-gap: clamp(8px, 1.35vw, 14px);
+        --score-card-height: clamp(58px, calc(var(--random-tile-size) * 0.78), 86px);
+        --tool-height: clamp(54px, calc(var(--random-tile-size) * 0.68), 74px);
+        width: var(--shell-width);
+        min-height: 100svh;
+        margin: 0 auto;
+        padding: clamp(62px, 8vh, 88px) var(--shell-pad-x) clamp(16px, 2vh, 24px);
+        background: #003238;
+        box-shadow: 0 0 80px rgba(0, 0, 0, .24);
+      }
+
+      h1 {
+        margin: 0 0 6px;
+        text-align: center;
+        color: #c5d7db;
+        font-size: clamp(32px, calc(var(--shell-width) * 0.073), 58px);
+        line-height: 1;
+        font-weight: 900;
+        letter-spacing: 0;
+        white-space: nowrap;
+      }
+
+      h1 span { color: #6dc8e3; }
+
+      .record-line {
+        margin: 0 0 clamp(14px, 2.5vh, 26px);
+        text-align: center;
+        color: #c1d4d7;
+        font-size: clamp(15px, calc(var(--shell-width) * 0.032), 24px);
+        font-weight: 900;
+        line-height: 1.1;
+        white-space: nowrap;
+      }
+
+      .top-layout {
+        display: grid;
+        grid-template-columns: 1.18fr 1fr 1fr;
+        grid-template-rows: var(--score-card-height) var(--tool-height);
+        gap: var(--top-gap);
+        align-items: stretch;
+        margin-bottom: 12px;
+      }
+
+      .number-switch,
+      .score-card,
+      .tool,
+      .board-wrap,
+      .restart-button {
+        background: #29434a;
+      }
+
+      .number-switch {
+        container-type: inline-size;
+        grid-column: 1;
+        grid-row: 1 / span 2;
+        display: grid;
+        grid-template-columns: var(--reserve-tile-size) var(--random-tile-size);
+        grid-template-rows: auto 1fr;
+        column-gap: clamp(8px, 1.4vw, 14px);
+        row-gap: 6px;
+        align-items: end;
+        justify-content: center;
+        height: 100%;
+        padding: 12px 14px 14px;
+        border: clamp(3px, .55vw, 5px) solid #168fff;
+        border-radius: var(--panel-radius);
+        box-shadow: inset 0 0 0 2px rgba(127, 216, 255, .15);
+      }
+
+      .number-switch-title {
+        grid-column: 1 / -1;
+        justify-self: center;
+        max-width: 100%;
+        color: #c8d7d9;
+        font-size: min(24px, 15cqw);
+        font-weight: 800;
+        line-height: 1;
+        white-space: nowrap;
+      }
+
+      .preview,
+      .current,
+      .cell {
+        position: relative;
+        display: grid;
+        place-items: center;
+        border-radius: var(--tile-radius);
+        color: rgba(34, 51, 52, .72);
+        background: var(--tile-color, #dde4e7);
+        font-weight: 900;
+        line-height: 1;
+      }
+
+      .preview {
+        container-type: inline-size;
+        --number-size: 58cqw;
+        grid-row: 2;
+        width: var(--reserve-tile-size);
+        height: var(--reserve-tile-size);
+        aspect-ratio: 1;
+        justify-self: end;
+        align-self: end;
+        border-radius: var(--small-tile-radius);
+      }
+
+      .current {
+        container-type: inline-size;
+        --number-size: 72cqw;
+        grid-row: 2;
+        width: var(--random-tile-size);
+        height: var(--random-tile-size);
+        aspect-ratio: 1;
+        align-self: end;
+        border-radius: var(--current-radius);
+      }
+
+      .score-card {
+        container-type: inline-size;
+        display: grid;
+        align-content: center;
+        justify-items: center;
+        min-width: 0;
+        overflow: hidden;
+        padding: 0 8px;
+        border-radius: var(--panel-radius);
+      }
+
+      .score-card span {
+        max-width: 100%;
+        font-size: min(24px, 15cqw);
+        font-weight: 800;
+        white-space: nowrap;
+      }
+
+      .score-card strong {
+        display: block;
+        max-width: 100%;
+        overflow: hidden;
+        color: #c8d7d9;
+        font-size: min(44px, 25cqw);
+        line-height: .96;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+
+      .tools {
+        grid-column: 2 / 4;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: var(--top-gap);
+        min-height: 0;
+        margin: 0;
+      }
+
+      .tool {
+        position: relative;
+        display: grid;
+        place-items: center;
+        width: 100%;
+        height: 100%;
+        border-radius: var(--panel-radius);
+      }
+
+      .tool.active { outline: 4px solid #7fd8ff; }
+      .tool.used { cursor: default; opacity: .42; }
+
+      .badge {
+        position: absolute;
+        top: -10px;
+        right: -10px;
+        display: grid;
+        place-items: center;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        color: #fff;
+        background: #68c5df;
+        font-size: 24px;
+        font-weight: 900;
+      }
+
+      .tool-icon {
+        display: grid;
+        place-items: center;
+        width: clamp(30px, 4.4vw, 48px);
+        height: clamp(30px, 4.4vw, 48px);
+        color: #fff;
+        font-size: clamp(24px, 4vw, 38px);
+        line-height: 1;
+      }
+
+      .board-wrap {
+        position: relative;
+        padding: var(--board-pad);
+        border-radius: var(--panel-radius);
+      }
+
+      .board {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: var(--board-gap);
+      }
+
+      .cell {
+        container-type: inline-size;
+        --number-size: 60cqw;
+        aspect-ratio: 1;
+        width: 100%;
+        min-width: 0;
+        overflow: hidden;
+        background: #435a5f;
+        color: transparent;
+      }
+
+      .cell.tile {
+        color: rgba(34, 51, 52, .72);
+        background: var(--tile-color, #dde4e7);
+      }
+
+      .cell.empty:hover { background: #50676c; }
+
+      .tile-number {
+        display: block;
+        max-width: 100%;
+        overflow: hidden;
+        font-size: var(--number-size);
+        line-height: .95;
+        white-space: nowrap;
+      }
+
+      .rank-2,
+      .rank-3 { color: #f6fdff; }
+      .rank-9 { color: #12383c; }
+      .rank-10 {
+        color: #fff;
+        background: linear-gradient(135deg, #a55bff 0%, #ff5ab8 100%);
+      }
+      .rank-11 {
+        color: #3f3000;
+        background: linear-gradient(135deg, #fff7b0 0%, #ffd95a 45%, #ffb33f 100%);
+        animation: pulse 1.2s ease-in-out infinite;
+        box-shadow: 0 0 28px rgba(255, 217, 90, .72);
+      }
+
+      .rank-4,
+      .rank-5 { --number-size: 50cqw; }
+      .rank-6,
+      .rank-7 { --number-size: 40cqw; }
+      .rank-8,
+      .rank-9 { --number-size: 33cqw; }
+      .rank-10,
+      .rank-11 { --number-size: 27cqw; }
+
+      .cell.effect {
+        z-index: 1;
+        animation: cell-flash .52s ease-out;
+        outline: 4px solid rgba(127, 216, 255, .95);
+        outline-offset: -4px;
+      }
+
+      .combo {
+        position: absolute;
+        z-index: 2;
+        top: 16px;
+        left: 50%;
+        transform: translateX(-50%);
+        color: #fff;
+        background: rgba(127, 216, 255, .95);
+        border-radius: 999px;
+        padding: 8px 20px;
+        font-size: clamp(20px, 3.4vw, 32px);
+        font-weight: 900;
+        animation: pop .4s ease-out;
+      }
+
+      .restart-button {
+        display: grid;
+        place-items: center;
+        width: 100%;
+        min-height: clamp(66px, 7vh, 92px);
+        margin-top: 12px;
+        border-radius: var(--panel-radius);
+        color: #c5d7db;
+        font-size: clamp(28px, 4vw, 40px);
+        font-weight: 900;
+      }
+
+      footer {
+        display: grid;
+        justify-items: center;
+        margin-top: clamp(20px, 3.2vh, 42px);
+        text-align: center;
+        color: #c1d4d7;
+        font-weight: 900;
+      }
+
+      footer strong { font-size: clamp(22px, 3.2vw, 34px); }
+
+      .overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 10;
+        display: none;
+        place-items: center;
+        padding: 24px;
+        background: rgba(0, 32, 36, .72);
+      }
+
+      .overlay.show { display: grid; }
+
+      .modal {
+        width: min(420px, 100%);
+        border-radius: 18px;
+        padding: 30px;
+        text-align: center;
+        color: #d7e8eb;
+        background: #29434a;
+        box-shadow: 0 24px 80px rgba(0, 0, 0, .35);
+      }
+
+      .modal h2 { margin: 0 0 18px; font-size: 34px; }
+      .modal p { margin: 10px 0; font-size: 22px; font-weight: 800; }
+      .modal button {
+        margin-top: 18px;
+        width: 100%;
+        min-height: 54px;
+        border-radius: 12px;
+        color: #003238;
+        background: #7fd8ff;
+        font-size: 22px;
+        font-weight: 900;
+      }
+
+      @keyframes pop {
+        from { opacity: 0; transform: translate(-50%, 18px) scale(.82); }
+      }
+
+      @keyframes pulse {
+        50% {
+          filter: brightness(1.25);
+          box-shadow: 0 0 34px rgba(255, 255, 255, .72);
+        }
+      }
+
+      @keyframes cell-flash {
+        0% { filter: brightness(1.45); transform: scale(.94); }
+        70% { transform: scale(1.04); }
+      }
+
+      @media (max-width: 760px) {
+        .back-link {
+          left: 14px;
+          top: 12px;
+          min-height: 34px;
+          font-size: 12px;
+        }
+
+        .game-shell {
+          --shell-width: min(100vw, max(320px, calc(100svh * .64)));
+          --shell-pad-x: 14px;
+          --board-gap: 10px;
+          --board-pad: 12px;
+          --top-gap: 10px;
+          --score-card-height: clamp(54px, calc(var(--random-tile-size) * .76), 74px);
+          --tool-height: clamp(50px, calc(var(--random-tile-size) * .66), 64px);
+          padding-top: 56px;
+        }
+
+        .number-switch {
+          padding: 10px;
+          gap: 8px;
+          border-width: 3px;
+        }
+
+        .tool-icon {
+          width: clamp(28px, 8vw, 40px);
+          height: clamp(28px, 8vw, 40px);
+        }
+
+        .badge {
+          width: 28px;
+          height: 28px;
+          font-size: 18px;
+        }
+
+        .restart-button {
+          min-height: 58px;
+          margin-top: 10px;
+        }
+      }
+
+      @media (max-width: 430px) {
+        .game-shell {
+          --shell-pad-x: 10px;
+          --board-gap: 8px;
+          --board-pad: 10px;
+          --top-gap: 8px;
+        }
+
+        h1 { font-size: clamp(29px, calc(var(--shell-width) * .078), 34px); }
+        .record-line { margin-bottom: 14px; font-size: 15px; }
+        .top-layout,
+        .tools,
+        .board { gap: 8px; }
+      }
+    </style>
+  </head>
+  <body>
+    <a class="back-link" href="/">返回 DesignTang</a>
+    <main class="game-shell">
+      <h1>唐少博的<span>数字战争</span></h1>
+      <div class="record-line" id="recordLine">最高数字 0 · 总局数 0 · 游戏时长 0:00</div>
+
+      <section class="top-layout" aria-label="游戏状态">
+        <div class="number-switch" id="numberSwitch" aria-label="数字切换区">
+          <span class="number-switch-title">暂存区</span>
+          <button type="button" class="preview" id="reserveTile" aria-label="点击小数字交换到大数字"></button>
+          <button type="button" class="current" id="currentTile" aria-label="当前要放置的大数字，点击只和小数字交换"></button>
+        </div>
+
+        <div class="score-card">
+          <span>得分</span>
+          <strong id="scoreNow">0</strong>
+        </div>
+
+        <div class="score-card">
+          <span>高分</span>
+          <strong id="scoreHigh">0</strong>
+        </div>
+
+        <section class="tools" aria-label="道具栏" id="tools"></section>
+      </section>
+
+      <section class="board-wrap" aria-label="6x6棋盘">
+        <div class="combo" id="combo" hidden></div>
+        <div class="board" id="board"></div>
+      </section>
+
+      <button type="button" class="restart-button" id="restartButton">重新开始</button>
+
+      <footer>
+        <strong>此游戏全程由 AI 实现</strong>
+      </footer>
+    </main>
+
+    <div class="overlay" id="overlay" role="dialog" aria-modal="true" aria-label="游戏结束">
+      <div class="modal">
+        <h2>游戏结束</h2>
+        <p id="finalScore">最终分数 0</p>
+        <p id="finalHighest">最高数字 0</p>
+        <p id="finalRecord">历史最高 0</p>
+        <button id="modalRestart">重新开始</button>
+      </div>
+    </div>
+
+    <script>
+      const BOARD_SIZE = 6;
+      const STORAGE_KEY = "tang-shaobo-number-war-record";
+      const LEVELS = [
+        { rank: 1, value: 1, color: "#DDE4E7" },
+        { rank: 2, value: 3, color: "#A9C8CA" },
+        { rank: 3, value: 9, color: "#69C6DE" },
+        { rank: 4, value: 27, color: "#4EA5FF" },
+        { rank: 5, value: 81, color: "#A55BFF" },
+        { rank: 6, value: 243, color: "#FFAA3A" },
+        { rank: 7, value: 729, color: "#FF5A5A" },
+        { rank: 8, value: 2187, color: "#FFD95A" },
+        { rank: 9, value: 6561, color: "#3FFFD7" },
+        { rank: 10, value: 19683, color: "purple-pink" },
+        { rank: 11, value: 59049, color: "gold" }
+      ];
+      const TOOLS = [
+        { key: "undo", label: "撤销", icon: "↶" },
+        { key: "shovel", label: "铲子", icon: "⌫" },
+        { key: "wand", label: "魔法棒", icon: "✦" },
+        { key: "bomb", label: "炸弹", icon: "✹" }
+      ];
+
+      const els = {
+        board: document.getElementById("board"),
+        tools: document.getElementById("tools"),
+        recordLine: document.getElementById("recordLine"),
+        reserveTile: document.getElementById("reserveTile"),
+        currentTile: document.getElementById("currentTile"),
+        scoreNow: document.getElementById("scoreNow"),
+        scoreHigh: document.getElementById("scoreHigh"),
+        combo: document.getElementById("combo"),
+        overlay: document.getElementById("overlay"),
+        finalScore: document.getElementById("finalScore"),
+        finalHighest: document.getElementById("finalHighest"),
+        finalRecord: document.getElementById("finalRecord")
+      };
+
+      let state;
+      let timerId;
+
+      function emptyBoard() {
+        return Array.from({ length: BOARD_SIZE }, () => Array.from({ length: BOARD_SIZE }, () => null));
+      }
+
+      function cloneBoard(board) {
+        return board.map((row) => [...row]);
+      }
+
+      function readRecord() {
+        try {
+          return { highScore: 0, highestTile: 0, games: 0, totalSeconds: 0, ...JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}") };
+        } catch {
+          return { highScore: 0, highestTile: 0, games: 0, totalSeconds: 0 };
+        }
+      }
+
+      function writeRecord(record) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(record));
+      }
+
+      function getLevel(value) {
+        return LEVELS.find((level) => level.value === value) || LEVELS[0];
+      }
+
+      function upgradeValue(value) {
+        const index = LEVELS.findIndex((level) => level.value === value);
+        return LEVELS[Math.min(Math.max(index, 0) + 1, LEVELS.length - 1)].value;
+      }
+
+      function maxBoardValue(board) {
+        return board.flat().reduce((max, value) => Math.max(max, value || 0), 0);
+      }
+
+      function spawnOptions(highestCreated) {
+        if (highestCreated >= 2187) return [[1, 68], [3, 20], [9, 8.5], [27, 2.8], [81, .5], [243, .2]];
+        if (highestCreated >= 729) return [[1, 69], [3, 20], [9, 8], [27, 2.5], [81, .4], [243, .1]];
+        if (highestCreated >= 243) return [[1, 71], [3, 20], [9, 7], [27, 1.7], [81, .3]];
+        if (highestCreated >= 81) return [[1, 73], [3, 20], [9, 6], [27, 1]];
+        if (highestCreated >= 27) return [[1, 75], [3, 20], [9, 5]];
+        if (highestCreated >= 9) return [[1, 80], [3, 20]];
+        return [[1, 100]];
+      }
+
+      function generateTile(highestCreated = 0) {
+        const options = spawnOptions(highestCreated);
+        const total = options.reduce((sum, option) => sum + option[1], 0);
+        let cursor = 0;
+        const roll = Math.random() * total;
+        for (const option of options) {
+          cursor += option[1];
+          if (roll < cursor) return option[0];
+        }
+        return options[options.length - 1][0];
+      }
+
+      function isBoardFull(board) {
+        return board.every((row) => row.every((cell) => cell !== null));
+      }
+
+      function connectedGroup(board, row, col) {
+        const value = board[row]?.[col];
+        if (value === null || value === undefined) return [];
+        const seen = new Set();
+        const queue = [{ row, col }];
+        const group = [];
+        while (queue.length) {
+          const cell = queue.shift();
+          const key = `${cell.row}:${cell.col}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          if (board[cell.row]?.[cell.col] !== value) continue;
+          group.push(cell);
+          [[-1, 0], [1, 0], [0, -1], [0, 1]].forEach(([dr, dc]) => {
+            const nr = cell.row + dr;
+            const nc = cell.col + dc;
+            if (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE) queue.push({ row: nr, col: nc });
+          });
+        }
+        return group;
+      }
+
+      function pickMergeCells(group, anchor) {
+        return [
+          anchor,
+          ...group
+            .filter((cell) => cell.row !== anchor.row || cell.col !== anchor.col)
+            .sort((a, b) => {
+              const da = Math.abs(a.row - anchor.row) + Math.abs(a.col - anchor.col);
+              const db = Math.abs(b.row - anchor.row) + Math.abs(b.col - anchor.col);
+              if (da !== db) return da - db;
+              if (a.row !== b.row) return a.row - b.row;
+              return a.col - b.col;
+            })
+            .slice(0, 2)
+        ];
+      }
+
+      function resolveFrom(board, row, col) {
+        const next = cloneBoard(board);
+        let scoreGain = 0;
+        let combo = 0;
+        const events = [];
+        const anchor = { row, col };
+        while (true) {
+          const currentValue = next[anchor.row][anchor.col];
+          if (currentValue === LEVELS[LEVELS.length - 1].value) break;
+          const group = connectedGroup(next, anchor.row, anchor.col);
+          if (group.length < 3) break;
+          combo += 1;
+          const nextValue = upgradeValue(currentValue);
+          const removed = pickMergeCells(group, anchor);
+          removed.forEach((cell) => { next[cell.row][cell.col] = null; });
+          next[anchor.row][anchor.col] = nextValue;
+          scoreGain += nextValue;
+          events.push({ combo, to: nextValue, removed });
+        }
+        return { board: next, scoreGain, events };
+      }
+
+      function formatTime(seconds) {
+        const minutes = Math.floor(seconds / 60);
+        return `${minutes}:${String(seconds % 60).padStart(2, "0")}`;
+      }
+
+      function snapshot() {
+        return {
+          board: cloneBoard(state.board),
+          score: state.score,
+          current: state.current,
+          reserve: state.reserve,
+          highest: state.highest,
+          tools: { ...state.tools }
+        };
+      }
+
+      function applyTileClass(element, value, baseClass) {
+        const level = getLevel(value);
+        element.className = `${baseClass} rank-${level.rank}`;
+        if (value === null) {
+          element.className = `${baseClass} empty`;
+          element.style.removeProperty("--tile-color");
+          element.innerHTML = "";
+          return;
+        }
+        element.style.setProperty("--tile-color", level.color);
+        element.innerHTML = `<span class="tile-number">${value}</span>`;
+      }
+
+      function render() {
+        const boardHighest = Math.max(state.highest, maxBoardValue(state.board));
+        state.highest = boardHighest;
+        const highScore = Math.max(state.record.highScore, state.score);
+        els.recordLine.textContent = `最高数字 ${boardHighest || 0} · 总局数 ${state.record.games} · 游戏时长 ${formatTime(state.sessionSeconds)}`;
+        els.scoreNow.textContent = state.score;
+        els.scoreHigh.textContent = highScore;
+        applyTileClass(els.reserveTile, state.reserve, "preview");
+        applyTileClass(els.currentTile, state.current, "current");
+
+        els.board.innerHTML = "";
+        state.board.forEach((row, rowIndex) => {
+          row.forEach((value, colIndex) => {
+            const cell = document.createElement("button");
+            cell.type = "button";
+            cell.dataset.row = rowIndex;
+            cell.dataset.col = colIndex;
+            cell.setAttribute("aria-label", value === null ? "空格" : String(value));
+            applyTileClass(cell, value, value === null ? "cell" : "cell tile");
+            cell.addEventListener("click", () => handleCell(rowIndex, colIndex));
+            els.board.appendChild(cell);
+          });
+        });
+
+        els.tools.innerHTML = "";
+        TOOLS.forEach((tool) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = `tool tool-${tool.key}${state.mode === tool.key ? " active" : ""}${state.tools[tool.key] ? " used" : ""}`;
+          button.title = tool.label;
+          button.setAttribute("aria-label", tool.label);
+          button.innerHTML = `${state.tools[tool.key] ? "" : '<span class="badge">1</span>'}<span class="tool-icon">${tool.icon}</span>`;
+          button.addEventListener("click", () => selectTool(tool.key));
+          els.tools.appendChild(button);
+        });
+      }
+
+      function showCombo(events) {
+        const last = events.at(-1);
+        if (!last || last.combo < 2) return;
+        els.combo.textContent = `Combo x${last.combo}`;
+        els.combo.hidden = false;
+        window.setTimeout(() => { els.combo.hidden = true; }, 1200);
+      }
+
+      function flashCells(cells) {
+        cells.forEach((cell) => {
+          const el = els.board.querySelector(`[data-row="${cell.row}"][data-col="${cell.col}"]`);
+          if (!el) return;
+          el.classList.add("effect");
+          window.setTimeout(() => el.classList.remove("effect"), 520);
+        });
+      }
+
+      function handleCell(row, col) {
+        if (state.gameOver) return;
+        if (state.mode) {
+          applyTool(row, col);
+          return;
+        }
+        if (state.board[row][col] !== null) return;
+
+        state.snapshot = snapshot();
+        const beforeHighest = Math.max(state.highest, maxBoardValue(state.board));
+        const placed = cloneBoard(state.board);
+        placed[row][col] = state.current;
+        const result = resolveFrom(placed, row, col);
+        state.board = result.board;
+        state.score += result.scoreGain;
+        state.highest = Math.max(beforeHighest, maxBoardValue(result.board), ...result.events.map((event) => event.to), state.current);
+        state.current = state.reserve;
+        state.reserve = generateTile(maxBoardValue(result.board));
+        showCombo(result.events);
+        render();
+
+        if (isBoardFull(result.board)) finishGame();
+      }
+
+      function selectTool(tool) {
+        if (state.tools[tool] || state.gameOver) return;
+        if (tool === "undo") {
+          if (!state.snapshot) return;
+          Object.assign(state, {
+            board: cloneBoard(state.snapshot.board),
+            score: state.snapshot.score,
+            current: state.snapshot.current,
+            reserve: state.snapshot.reserve,
+            highest: state.snapshot.highest,
+            tools: { ...state.snapshot.tools, undo: true },
+            snapshot: null,
+            mode: null
+          });
+          render();
+          return;
+        }
+        state.mode = state.mode === tool ? null : tool;
+        render();
+      }
+
+      function applyTool(row, col) {
+        const value = state.board[row][col];
+        if (value === null || state.tools[state.mode]) return;
+        if (state.mode === "shovel") {
+          state.current = value;
+          state.board[row][col] = null;
+          state.tools.shovel = true;
+          flashCells([{ row, col }]);
+        }
+        if (state.mode === "wand") {
+          state.board[row][col] = upgradeValue(value);
+          const result = resolveFrom(state.board, row, col);
+          state.board = result.board;
+          state.score += result.scoreGain;
+          state.highest = Math.max(state.highest, maxBoardValue(result.board), ...result.events.map((event) => event.to));
+          state.tools.wand = true;
+          showCombo(result.events);
+          flashCells([{ row, col }, ...result.events.flatMap((event) => event.removed)]);
+        }
+        if (state.mode === "bomb") {
+          state.board[row][col] = null;
+          state.tools.bomb = true;
+          flashCells([{ row, col }]);
+        }
+        state.mode = null;
+        render();
+      }
+
+      function finishGame() {
+        state.gameOver = true;
+        state.record = {
+          highScore: Math.max(state.record.highScore, state.score),
+          highestTile: Math.max(state.record.highestTile, state.highest),
+          games: state.record.games + 1,
+          totalSeconds: state.record.totalSeconds + state.sessionSeconds
+        };
+        writeRecord(state.record);
+        els.finalScore.textContent = `最终分数 ${state.score}`;
+        els.finalHighest.textContent = `最高数字 ${state.highest || 0}`;
+        els.finalRecord.textContent = `历史最高 ${state.record.highScore}`;
+        els.overlay.classList.add("show");
+      }
+
+      function restart() {
+        state = {
+          board: emptyBoard(),
+          score: 0,
+          highest: 0,
+          current: generateTile(0),
+          reserve: generateTile(0),
+          record: readRecord(),
+          tools: { undo: false, shovel: false, wand: false, bomb: false },
+          mode: null,
+          snapshot: null,
+          sessionSeconds: 0,
+          gameOver: false
+        };
+        els.overlay.classList.remove("show");
+        render();
+      }
+
+      document.getElementById("numberSwitch").addEventListener("click", () => {
+        if (state.gameOver) return;
+        const next = state.current;
+        state.current = state.reserve;
+        state.reserve = next;
+        render();
+      });
+      document.getElementById("restartButton").addEventListener("click", restart);
+      document.getElementById("modalRestart").addEventListener("click", restart);
+
+      restart();
+      timerId = window.setInterval(() => {
+        if (state && !state.gameOver) {
+          state.sessionSeconds += 1;
+          state.record.totalSeconds += 1;
+          writeRecord({ ...state.record, highScore: Math.max(state.record.highScore, state.score), highestTile: Math.max(state.record.highestTile, state.highest) });
+          render();
+        }
+      }, 1000);
+    </script>
+  </body>
+</html>
