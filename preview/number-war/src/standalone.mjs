@@ -50,7 +50,7 @@ const audioBufferPromises = new Map();
 let audioContext = null;
 
 function audioPath(file) {
-  return "./audio/" + file;
+  return new URL("../audio/" + file, import.meta.url).href;
 }
 
 function getAudioContext() {
@@ -188,6 +188,8 @@ let lastCellEvent = { row: -1, col: -1, time: 0 };
 let lastSwitchEventTime = 0;
 let effects = { cells: new Set(), tool: null };
 let delegatedControlsBound = false;
+let showRules = true;
+let confirmUndoOpen = false;
 
 preloadSounds();
 setupAudioUnlockListeners();
@@ -265,6 +267,59 @@ function updateRecords() {
   record.highScore = Math.max(record.highScore, score);
   record.highestTile = Math.max(record.highestTile, highest);
   writeRecord();
+}
+
+function renderRulesOverlay() {
+  if (!showRules) return "";
+  return (
+    '<div class="overlay" role="dialog" aria-modal="true" aria-label="游戏规则"><div class="modal rules-modal">' +
+    "<h2>🎮 游戏规则</h2>" +
+    '<div class="rule-copy">' +
+    '<section class="rule-card">' +
+    "<p>① 点击空格放入当前数字</p>" +
+    "<p>② 点击左侧小数字可与当前数字交换</p>" +
+    "<p>③ 三个相同且相连数字自动升级</p>" +
+    "<p>3个1 = 3</p>" +
+    "<p>3个3 = 9</p>" +
+    "<p>3个9 = 27</p>" +
+    "<p>继续向上合成更高等级！</p>" +
+    "</section>" +
+    '<section class="rule-card">' +
+    '<div class="rule-tool"><span class="rule-tool-icon">' +
+    toolsMeta.shovel[1] +
+    "</span><span>铲子：撤回数字</span></div>" +
+    '<div class="rule-tool"><span class="rule-tool-icon">' +
+    toolsMeta.wand[1] +
+    "</span><span>魔法棒：升级数字</span></div>" +
+    '<div class="rule-tool"><span class="rule-tool-icon">' +
+    toolsMeta.bomb[1] +
+    "</span><span>炸弹：清除数字</span></div>" +
+    '<div class="rule-tool"><span class="rule-tool-icon">' +
+    toolsMeta.undo[1] +
+    "</span><span>撤销：返回上一步</span></div>" +
+    "<p>每局各使用1次</p>" +
+    "</section>" +
+    '<section class="rule-card">' +
+    "<p>棋盘放满游戏结束</p>" +
+    "<p>目标：合成最高等级数字！</p>" +
+    "</section>" +
+    "</div>" +
+    '<button type="button" data-role="start-rules">开始游戏</button>' +
+    "</div></div>"
+  );
+}
+
+function renderUndoConfirmOverlay() {
+  if (!confirmUndoOpen) return "";
+  return (
+    '<div class="overlay" role="dialog" aria-modal="true" aria-label="确认撤销"><div class="modal confirm-modal">' +
+    "<h2>确认撤销</h2>" +
+    "<p>确定返回上一步吗？</p>" +
+    '<div class="modal-actions">' +
+    '<button type="button" class="secondary-button" data-role="cancel-undo">取消</button>' +
+    '<button type="button" data-role="confirm-undo">确定撤销</button>' +
+    "</div></div></div>"
+  );
 }
 
 function render() {
@@ -395,7 +450,9 @@ function render() {
         "</p><p>最高数字 " +
         (boardHighest || 0) +
         '</p><button type="button" data-role="restart">重新开始</button></div></div>'
-      : "");
+      : "") +
+    renderUndoConfirmOverlay() +
+    renderRulesOverlay();
 
   bindControls();
 }
@@ -454,14 +511,37 @@ function bindControls() {
   app.querySelectorAll('[data-role="restart"]').forEach((button) => {
     button.addEventListener("click", restart);
   });
+
+  app.querySelectorAll('[data-role="start-rules"]').forEach((button) => {
+    button.addEventListener("click", closeRules);
+  });
+
+  app.querySelectorAll('[data-role="cancel-undo"]').forEach((button) => {
+    button.addEventListener("click", () => {
+      playSound("click");
+      confirmUndoOpen = false;
+      render();
+    });
+  });
+
+  app.querySelectorAll('[data-role="confirm-undo"]').forEach((button) => {
+    button.addEventListener("click", confirmUndo);
+  });
 }
 
 function handleNumberSwitchEvent(event) {
   event.preventDefault();
+  event.stopPropagation();
   const now = Date.now();
   if (now - lastSwitchEventTime < 160) return;
   lastSwitchEventTime = now;
   swapNumbers();
+}
+
+function closeRules() {
+  playSound("click");
+  showRules = false;
+  render();
 }
 
 function handleDelegatedCellEvent(event) {
@@ -533,6 +613,7 @@ function swapNumbers() {
   const oldMain = main;
   main = reserve;
   reserve = oldMain;
+  mode = null;
   render();
 }
 
@@ -540,11 +621,19 @@ function selectTool(tool) {
   if (gameOver || tools[tool]) return;
   playSound("click");
   if (tool === "undo") {
-    undoPlacement();
+    if (!snapshot) return;
+    mode = null;
+    confirmUndoOpen = true;
+    render();
     return;
   }
   mode = mode === tool ? null : tool;
   render();
+}
+
+function confirmUndo() {
+  confirmUndoOpen = false;
+  undoPlacement();
 }
 
 function undoPlacement() {
@@ -650,6 +739,7 @@ function restart() {
   mode = null;
   snapshot = null;
   gameOver = false;
+  confirmUndoOpen = false;
   sessionSeconds = 0;
   comboText = "";
   tools = { undo: false, shovel: false, wand: false, bomb: false };
@@ -658,7 +748,7 @@ function restart() {
 }
 
 window.setInterval(() => {
-  if (!gameOver) {
+  if (!gameOver && !showRules) {
     sessionSeconds += 1;
     writeRecord();
     const recordLine = app.querySelector(".record-line");
