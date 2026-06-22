@@ -1,15 +1,15 @@
 export const BOARD_SIZE = 6;
 
 export const LEVELS = [
-  { rank: 1, value: 1, label: "普通", color: "#DDE4E7" },
-  { rank: 2, value: 3, label: "优秀", color: "#A9C8CA" },
-  { rank: 3, value: 9, label: "稀有", color: "#69C6DE" },
-  { rank: 4, value: 27, label: "精良", color: "#4EA5FF" },
-  { rank: 5, value: 81, label: "史诗", color: "#A55BFF" },
-  { rank: 6, value: 243, label: "传说", color: "#FFAA3A" },
-  { rank: 7, value: 729, label: "神话", color: "#FF5A5A" },
-  { rank: 8, value: 2187, label: "远古", color: "#FFD95A" },
-  { rank: 9, value: 6561, label: "至尊", color: "#3FFFD7" },
+  { rank: 1, value: 1, label: "普通", color: "#FFF2D8" },
+  { rank: 2, value: 3, label: "优秀", color: "#9EE4AE" },
+  { rank: 3, value: 9, label: "稀有", color: "#70CFFF" },
+  { rank: 4, value: 27, label: "精良", color: "#8DBBFF" },
+  { rank: 5, value: 81, label: "史诗", color: "#C995FF" },
+  { rank: 6, value: 243, label: "传说", color: "#FFB65C" },
+  { rank: 7, value: 729, label: "神话", color: "#FF7D8D" },
+  { rank: 8, value: 2187, label: "远古", color: "#FFE15F" },
+  { rank: 9, value: 6561, label: "至尊", color: "#66FFE3" },
   { rank: 10, value: 19683, label: "创世", color: "purple-pink" },
   { rank: 11, value: 59049, label: "万物", color: "gold" },
 ];

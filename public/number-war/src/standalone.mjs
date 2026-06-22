@@ -11,6 +11,7 @@ import {
 } from "./gameLogic.mjs";
 
 const STORAGE_KEY = "tang-shaobo-number-war-record";
+const THEME_STORAGE_KEY = "tang-shaobo-number-war-theme";
 const toolsMeta = {
   undo: [
     "撤销",
@@ -150,6 +151,7 @@ function setupAudioUnlockListeners() {
 
 function playSound(name) {
   unlockAudioContext();
+  preloadSounds();
   if (playBufferedSound(name)) return;
 
   const pool = getAudioPool(name);
@@ -157,12 +159,21 @@ function playSound(name) {
   const audio = pool.items[pool.index];
   if (!audio) return;
   pool.index = (pool.index + 1) % pool.items.length;
+  audio.muted = false;
+  audio.volume = 0.9;
+  if (audio.readyState === 0) audio.load();
   try {
     audio.currentTime = 0;
   } catch {
     // Some mobile browsers do not allow seeking before metadata is ready.
   }
-  audio.play().catch(() => {});
+  audio.play().catch(() => {
+    const fallback = createAudio(name);
+    if (!fallback) return;
+    fallback.muted = false;
+    fallback.volume = 0.9;
+    fallback.play().catch(() => {});
+  });
 }
 
 function playMergeSound(events, previousHighest) {
@@ -190,9 +201,11 @@ let effects = { cells: new Set(), tool: null };
 let delegatedControlsBound = false;
 let showRules = true;
 let confirmUndoOpen = false;
+let theme = readTheme();
 
 preloadSounds();
 setupAudioUnlockListeners();
+applyTheme();
 
 function readRecord() {
   try {
@@ -201,6 +214,23 @@ function readRecord() {
     return Object.assign({ highScore: 0, highestTile: 0, games: 0, totalSeconds: 0 }, JSON.parse(raw));
   } catch {
     return { highScore: 0, highestTile: 0, games: 0, totalSeconds: 0 };
+  }
+}
+
+function readTheme() {
+  try {
+    return localStorage.getItem(THEME_STORAGE_KEY) === "cute" ? "cute" : "classic";
+  } catch {
+    return "classic";
+  }
+}
+
+function applyTheme() {
+  document.body.dataset.theme = theme;
+  try {
+    localStorage.setItem(THEME_STORAGE_KEY, theme);
+  } catch {
+    // localStorage can be unavailable in some embedded browsers.
   }
 }
 
@@ -323,6 +353,7 @@ function renderUndoConfirmOverlay() {
 }
 
 function render() {
+  applyTheme();
   const boardHighest = Math.max(highest, maxBoardValue(board));
   const highScore = Math.max(record.highScore, score);
   const toolButtons = Object.keys(toolsMeta)
@@ -404,9 +435,12 @@ function render() {
     " · 游戏时长 " +
     formatTime(sessionSeconds) +
     "</div>" +
+    '<button type="button" class="theme-toggle" data-role="theme-toggle" aria-label="切换游戏皮肤">' +
+    (theme === "classic" ? "切换Q版" : "切换经典") +
+    "</button>" +
     '<section class="top-layout" aria-label="游戏状态">' +
     '<div class="number-switch" data-role="number-switch" aria-label="数字切换区">' +
-    '<span class="number-switch-title">暂存区</span>' +
+    '<span class="number-switch-title">点击切换</span>' +
     '<button type="button" class="preview rank-' +
     getLevel(reserve).rank +
     '" ' +
@@ -512,6 +546,10 @@ function bindControls() {
     button.addEventListener("click", restart);
   });
 
+  app.querySelectorAll('[data-role="theme-toggle"]').forEach((button) => {
+    button.addEventListener("click", toggleTheme);
+  });
+
   app.querySelectorAll('[data-role="start-rules"]').forEach((button) => {
     button.addEventListener("click", closeRules);
   });
@@ -527,6 +565,13 @@ function bindControls() {
   app.querySelectorAll('[data-role="confirm-undo"]').forEach((button) => {
     button.addEventListener("click", confirmUndo);
   });
+}
+
+function toggleTheme() {
+  playSound("click");
+  theme = theme === "classic" ? "cute" : "classic";
+  applyTheme();
+  render();
 }
 
 function handleNumberSwitchEvent(event) {
